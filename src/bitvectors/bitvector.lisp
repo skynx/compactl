@@ -34,13 +34,22 @@
 ;;;;;;;;;;;;;;;
 ;;; implementation for example class bitvector-naive
 
+;;;;;;; access
+
 (defmethod access ((B bitvector-naive) (i integer))
   (readc B i))
 
+(defmethod access ((B bit-vector) (i integer))
+  (aref B i))
+
 ;;; to treat a single integer as a small bitvector
+#+ignore
 (defmethod access ((B integer) (i integer))
   (if (logbitp i B) 1 0))
 
+;;;;;;; rank
+
+;;; naive compact bitvector
 (defmethod rank ((B bitvector-naive) (index integer) &optional (value 1))
   (case value
     (1
@@ -51,45 +60,57 @@
 	sum (logcount x) into rank
 	;; index lies in the current word
 	when (<= (* i +w+) index  (* (1+ i) +w+))
-	sum (logcount (mask-field (byte (mod index +w+) 0) x)) into rank
+	sum (logcount (mask-field (byte (1+ (mod index +w+)) 0) x)) into rank
 	finally (return rank)))
-    (0 (- index (rank B index)))))
+    (0 (- (1+ (min index (lengthc B))) (rank B index)))))
 
+;;; simpler assuming built-in bit-vector
+(defmethod rank ((B bit-vector) (index integer) &optional (value 1))
+  (case value
+    (1 (loop for i upfrom 0 as x across B
+	  while (<= i index) count (= 1 x) into rank finally (return rank)))
+    (0 (- (1+ (min index (1- (length B)))) (rank B index)))))
+
+;;; very easy with an integer, but length is not knowable
+#+ignore
 (defmethod rank ((B integer) (index integer) &optional (value 1))
   (case value
-    (1 (logcount (mask-field (byte index 0) B)))
-    (0 (- index (rank B index)))))
+    (1 (logcount (mask-field (byte (1+ index) 0) B)))
+    (0 (- (1+ index) (rank B index)))))
 
-;;; SELECT
-(defmethod select ((B bitvector-naive) (j integer) &optional (value 1))
-  (let ((len (lengthc B)))
-    #+compactl-debug
-    (format t "~%B: ~b~%len: ~s | j: ~s | v: ~s
+;;;;;;; select
 
-|~1,2@Ti~1,2@T|~1,4@Ttop~1,4@Tspl~1,4@Tbtm~1,8@T|~1,2@Tsr~1,8@T|~%"
-	    (vchunks B) len j value)
-    (if (> j (rank B len value)) ;; there are fewer than j such bits
+(defun %select-binary-search (B k value ubound)
+  
+  (cond
+    ((> k (rank B ubound value)) ;; there are fewer than k such bits
 					;
-	(1+ len) ;; indicate so with an impossibly large value
+     ;; indicate so with an impossibly large index
+     ubound)
+    ((zerop k) -1)
+    (t ;; k is positive and less than ubound
 					;
-	(loop ;; binary search for the correct index
-	   for i from 0 ; to len
-	   ;; set or reset the search interval based on difference
-	   ;; between rank and j
-	   for btm = 0 then (or (and (> j split-rank)
-				     split)
-				btm)
-	   for top = len then (or (and (<= j split-rank)
+     (loop ;; binary search for the correct index
+					;
+	;; set or reset the search interval based on difference
+	;; between rank and j
+	for btm = 0 then (or (and (>= k split-rank)
+				  split)
+			     btm)
+	for top = ubound then (or (and (< k split-rank)
 				       split)
 				  top)
-	   for split = (+ btm (ceiling (/ (- top btm) 2)))
-	   for split-rank = (rank B split value)
-	     #+compactl-debug do
-	     #+compactl-debug
-	     (format t "|~1,2@T~s~1,2@T|~1,4@T~s~1,4@T~s~3,4@T~s~1,8@T|~1,2@T~s~1,8@T|~%"
-		     i top split btm split-rank)
-	   until (= btm (1- top))
-	   finally (return btm)))))
+	for split = (+ btm (ceiling (/ (- top btm) 2)))
+	for split-rank = (rank B split value)
+	  
+	until (= btm (1- top))
+	finally (return btm)))))
+
+(defmethod select ((B bitvector-naive) (j integer) &optional (value 1))
+  (%select-binary-search B j value (1+ (lengthc B))))
+
+(defmethod select ((B bit-vector) (j integer) &optional (value 1))
+  (%select-binary-search B j value (length B)))
 
 ;;; TODO: how to define a select method on integer?
 
