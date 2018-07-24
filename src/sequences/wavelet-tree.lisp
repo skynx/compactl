@@ -70,10 +70,9 @@
 ;;; WT Construction
 
 ;;; length is an important parameter!
-(defun construct-wavelet-tree (sequence length
-			       &optional
-				 #+compactl-debug (show-progress nil)
-			       &key (bitvector-class 'bitvector-naive))
+(defun construct-wavelet-tree
+    (sequence length &optional #+compactl-debug (show-progress nil)
+     &key (bitvector-class 'bitvector-naive))
   "
 Given a SEQUENCE (with a supplied LENGTH) of integer codes for symbols
 in some alphabet, construct the (binary) wavelet tree with structure
@@ -158,6 +157,8 @@ tree is isomorphic to that coding tree.
 ;; these three functions are closely related to
 ;; #'construct-wavelet-tree
 
+
+
 (defun %wt-access (beta depth node index)
   (if (consp node)
       ;; internal node
@@ -166,19 +167,21 @@ tree is isomorphic to that coding tree.
 	;; lo bit ==> left node
 	(0
 	 #+compactl-debug
-	 (cerror "set β[~s] ← 0, go LEFT  for (v.l).B[rank_0(v.B,~s)]"
-		 "LEFT branch at depth ~s, index ~s;~%node~%~a"
-		 depth index (%stupefy node))
+	 (cerror "set β[~s] ← 0, go LEFT for (v.l).B[rank_0(v.B,~s) - ~
+	 1] = (v.l).B[~s]"
+		 "LEFT branch at depth ~s, index ~s; next index ~a"
+		 depth index (1- (rank (car node) index 0)))
 	 (%wt-access beta (1+ depth) (cadr node)
-		     (rank (car node) index 0)))
+		     (1- (rank (car node) index 0))))
 	;; hi bit ==> right node
 	(1
 	 #+compactl-debug
-	 (cerror "set β[~s] ← 1, go RIGHT for (v.r).B[rank_1(v.B,~s)]"
-		 "RIGHT branch at depth ~s, index ~s;~%node~%~a~%depth=~s"
-		 depth index (%stupefy node))
+	 (cerror "set β[~s] ← 1, go RIGHT for (v.r).B[rank_1(v.B,~s) - ~
+	 1] = (v.r).B[~s]"
+		 "RIGHT branch at depth ~s, index ~s; next index ~a"
+		 depth index (1- (rank (car node) index 1)))
 	 (%wt-access (logior (byte 1 depth) beta) (1+ depth) (caddr node)
-		     (rank (car node) index 1))))
+		     (1- (rank (car node) index 1)))))
       ;; leaf node
       (progn
 	#+compactl-debug
@@ -187,24 +190,28 @@ tree is isomorphic to that coding tree.
 
 
 (defun %wt-rank (alpha node index)
-  "number of occurences /before/ position INDEX of symbol ALPHA in
+  "number of occurences up to position INDEX of symbol ALPHA in
 sequence encoded under NODE"
   (if (consp node)
       (case (logand 1 alpha)
 	  (0
 	    #+compactl-debug
-	    (cerror "set (α'.0 = ~b = α) ← α', ~2,6@Tgo LEFT  for RANK_α(S',rank_0(B,~a))" 
-		    "At α = ~a.~%Going to find rank_0(B,~a)" alpha index)
+	    (cerror "set (α'.0 = ~b = α) ← α', ~2,6@Tgo LEFT for ~
+	    RANK_α'(v.l, rank_0(v.B,~a) - 1) = RANK_α'(v.l, ~a) "
+		    "At α = ~a.~%Going to find rank_0(B,~a)"
+		    alpha index (1- (rank (car node) index 0)))
 	    (%wt-rank (ash alpha -1) (cadr node)
-		      (rank (car node) index 0)))
+		      (1- (rank (car node) index 0))))
 	  (1
 	    #+compactl-debug
-	    (cerror "set (α'.1 = ~b = α) ← α', ~2,6@Tgo RIGHT for RANK_α(S',rank_1(B,~a))"
-		    "At α = ~a.~%Going to find rank_1(B,~a)" alpha index)
+	    (cerror "set (α'.1 = ~b = α) ← α', ~2,6@Tgo RIGHT for ~
+	    RANK_α'(v.r, rank_1(v.B,~a) - 1) = RANK_α'(v.r, ~a)"
+		    "At α = ~a.~%Going to find rank_1(B,~a)"
+		    alpha index (1- (rank (car node) index)))
 	    (%wt-rank (ash alpha -1) (caddr node)
-		      (rank (car node) index))))
+		      (1- (rank (car node) index)))))
       ;; leaf
-      index))
+      (1+ index)))
 
 
 (defun %wt-select (alpha node count)
@@ -228,6 +235,8 @@ sequence encoded under NODE"
       (1- count)))
 
 
+
+
 (defmethod access ((sequence wavelet-tree) (index integer))
   (nth (%wt-access 0 0 (wt-root sequence) index) (alphabet sequence)))
 
@@ -240,54 +249,11 @@ sequence encoded under NODE"
 ;(B,j,a,b):~%" index alpha (alpha->index sequence alpha))
   (%wt-select (alpha->index sequence alpha) (wt-root sequence) count))
 
-#|
 
-this should not signal an error condition:
-
-(let* ((hamlet "tobeornottobethatisthequestion")
-       (src-seq (coerce hamlet 'list))
-       (wt (make-instance 'wavelet-tree
-			  :sort-key #'char-code
-			  :from-seq src-seq)))
-  (format t "~s" src-seq)
-  (loop for x in src-seq
-     do
-       (loop for j from 1 to (rank wt (length src-seq) x)
-	  do
-	    (let* ((q (select wt j x))
-		   (n (nth q src-seq))
-		   (a (access wt q))
-		   (r (rank wt (1+ q) x)))
-	      (unless (eql x n)
-		(error "x != n"))
-	      (unless (eql x a)
-		(error "x != a"))
-	      (unless (eql j r)
-		(error "r != j")))
-	    )))
-|#
-
-#|
-
-THIS IS NOT A REAL PROPERTY CHECKING STATEMENT.
-IT IS A FANTASY.
-
-(let* ((alphabet (a-random :range :over :fixnum))
-       (src-seq (a-random :sequence :over alphabet))
-       (wt (make-instance 'wavelet-tree
-			  :from-seq src-seq
-			  :hi (max alphabet)
-			  :lo (min alphabet))))
-  (forall with alpha from alphabet
-	  and n from 0 to (lengthc wt)
-	  and j from 0 to (rank B n alpha)
-	  (= alpha (nth (select wt j alpha) src-seq))))
-
-|#
 
 (defun %stupefy (node)
   (if (consp node)
-      (list (format nil "~b" (vchunks (car node)))
+      (list (format nil "~B" (vchunks (car node)))
 	    (%stupefy (cadr node))
 	    (%stupefy (caddr node)))
       (format nil "X")))
@@ -295,9 +261,82 @@ IT IS A FANTASY.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; online WT
 
-(defclass online-wavelet-tree (wavelet-tree)
-  ((code-table)))
+;; (defclass online-wavelet-tree (wavelet-tree)
+;;   ((code-table)))
 
 
-(defun %wt-update (node alpha)
-  )
+;; ;;; pretending to use built-in bit-vector
+;; (let* ((node (list ))
+;;        (alpha #b01)
+;;        (B (car node))
+;;        (r (rank B (length B) (logand 1 alpha)))
+;;        (new-bv (make-array r
+;; 			   :element-type 'bit
+;; 			   :adjustable t
+;; 			   :fill-pointer r)))
+;;   (case (logand 2 alpha)
+;;     (0
+;;      (vector-push-extend 0 new-bv)
+;;      (rplaca (cdr node) (list new-bv nil nil)))
+;;     (2
+;;      (vector-push-extend 1 new-bv)
+;;      (rplaca (cddr node) (list new-bv nil nil)))))
+
+
+(defun %%construct-online-wavelet-tree-node (alpha &optional left-pad root-p)
+  (if (zerop alpha)
+      (if root-p
+	  ;; a zero at the root must still initialize the tree
+	  (list (make-array 2 :element-type 'bit :adjustable t :fill-pointer 1)
+		nil nil)
+	  ;; otherwise, a zero indicates a leaf ==> NIL
+	  nil)
+      (let ((B (make-array (+ 2 (or left-pad 0))
+			   :element-type 'bit
+			   :adjustable t
+			   :fill-pointer (or left-pad 0))))
+	#+compactl-debug
+	(cerror "new tree node" "Making a new wavelet-tree node")
+	(vector-push-extend (logand 1 alpha) B)
+	(list
+	 B ;; an adjustable built-in bit-vector
+	 (unless (logbitp 1 alpha)
+	   (%%construct-online-wavelet-tree-node (ash alpha -1)))
+	 (unless (not (logbitp 1 alpha))
+	   (%%construct-online-wavelet-tree-node (ash alpha -1)))))))
+
+
+(defun %%update-online-wavelet-tree (node alpha)
+  "Destructively modifies the wavelet tree under NODE to represent the
+sequence S.α, where S is the sequence represented by NODE before
+calling this function."
+  (if (consp node)
+      (case (logand 1 alpha) ;; next bit of alpha
+	(0
+	 #+compactl-debug
+	 (cerror "push ~s onto v.B and go LEFT"
+		 "stepping..." (logand 1 alpha))
+	 (vector-push-extend (logand 1 alpha) (car node))
+	 (if (cadr node)
+	     (%%update-online-wavelet-tree (cadr node) (ash alpha -1))
+	     (rplaca (cdr node)		; lo ==> left ==> CDR
+		     (%%construct-online-wavelet-tree-node
+		      (ash alpha -1)
+		      (1- (rank (car node) (length (car node)) (logand 1 alpha))))))
+	 ;; to reduce update calls over a stream, return node
+	 node)
+	(1
+	 #+compactl-debug
+	 (cerror "push ~s onto v.B and go RIGHT"
+		 "stepping..." (logand 1 alpha))
+	 (vector-push-extend (logand 1 alpha) (car node))
+	 (if (caddr node)
+	     (%%update-online-wavelet-tree (caddr node) (ash alpha -1))
+	     (rplaca (cddr node) 	; hi ==> right ==> CDDR
+		     (%%construct-online-wavelet-tree-node
+		      (ash alpha -1)
+		      (1- (rank (car node) (length (car node)) (logand 1 alpha))))))
+	 ;; to reduce updates...
+	 node))
+	;; only called when input node at depth zero is nil
+      (%%construct-online-wavelet-tree-node alpha 0 t)))
