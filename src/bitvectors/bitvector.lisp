@@ -37,7 +37,7 @@
 ;;;;;;; access
 
 (defmethod access ((B bitvector-naive) (i integer))
-  (readc B i))
+  (bitread B i))
 
 (defmethod access ((B bit-vector) (i integer))
   (aref B i))
@@ -56,20 +56,23 @@
      (loop for i upfrom 0 as x across (vchunks B)
 	while (<= i (floor (/ index +w+)))
 	;; index lies past the current word
-	when (< (* (1+ i) +w+) index)
+	when (<= (* (1+ i) +w+) index)
 	sum (logcount x) into rank
+	;; index is a multiple of +w+
+	when (= (* i +w+) index)
+	sum (bitread B index) into rank
 	;; index lies in the current word
-	when (<= (* i +w+) index  (* (1+ i) +w+))
+	when (< (* i +w+) index (* (1+ i) +w+))
 	sum (logcount (mask-field (byte (1+ (mod index +w+)) 0) x)) into rank
 	finally (return rank)))
-    (0 (- (1+ (min index (lengthc B))) (rank B index)))))
+    (0 (- (min (1+ index) (lengthc B)) (rank B index)))))
 
 ;;; simpler assuming built-in bit-vector
 (defmethod rank ((B bit-vector) (index integer) &optional (value 1))
   (case value
     (1 (loop for i upfrom 0 as x across B
 	  while (<= i index) count (= 1 x) into rank finally (return rank)))
-    (0 (- (1+ (min index (1- (length B)))) (rank B index)))))
+    (0 (- (min (1+ index) (length B)) (rank B index)))))
 
 ;;; very easy with an integer, but length is not knowable
 #+ignore
@@ -94,17 +97,18 @@
 					;
 	;; set or reset the search interval based on difference
 	;; between rank and j
-	for btm = 0 then (or (and (>= k split-rank)
-				  split)
+	for btm = 0 then (or (and (> k split-rank)
+				  (1+ split))
 			     btm)
-	for top = ubound then (or (and (< k split-rank)
+	for top = ubound then (or (and (<= k split-rank)
 				       split)
 				  top)
-	for split = (+ btm (ceiling (/ (- top btm) 2)))
+	
+	for split = (+ btm (floor (/ (- top btm) 2)))
 	for split-rank = (rank B split value)
-	  
-	until (= btm (1- top))
-	finally (return btm)))))
+	;; do (format t "~s ~s ~s: ~s, ~s~%" btm split top k split-rank)
+	until (= btm split top)
+	finally (return split)))))
 
 (defmethod select ((B bitvector-naive) (j integer) &optional (value 1))
   (%select-binary-search B j value (1+ (lengthc B))))
