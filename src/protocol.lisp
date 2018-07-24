@@ -10,32 +10,48 @@
 (defgeneric access (B i)
   (:documentation
    "
-Given a bitvector B[1,n], returns the bit B[i], for any 1 ≤ i ≤ n.
-
-;  ∀ v ∈ B. (= v (access B (select B i v)))
+Given a bitvector B[0,n], returns the bit B[i], for any 0 ≤ i ≤ n.
 "))
+
+
 
 (defgeneric rank (B i &optional v)
   (:documentation
    " Returns the number of occurences of bit v ∈ {0,1} in bitvector
-B[1,n], for any 1 ≤ i ≤ n; in particular, 
+B[0,n], for any 0 ≤ i ≤ n; in particular, 
 
-; (= 0 (rank v B 0)).
+; (= 0 (rank v B -1)).
 
 If omitted, assume (= v 1).
 
-;  ∀ v ∈ B. (= i (rank B (select B (1+ i) v)))
+RANK inverts SELECT in its second argument, i:
+
+;  ∀ v ∈ B. (= i (rank B (select B i v) v))
 "))
 
-(defgeneric select (B j &optional v)
+
+
+(defgeneric select (B k &optional v)
   (:documentation
-   "Returns the position in B of the j-th occurrence of bit v ∈ {0,1},
-for any j ≥ 0; assume
+   " Returns the position in B[0,n] of the k-th occurrence of the bit
+v∈{0,1}, for any k ≥ 0; that is, (select B k v) returns the smallest
+index i such that B[i] = v and (rank B i v) is k.
 
-; (= 0 (select v B 0)) and
-; (= (1+ n) (select v B j)) if (> j (rank v B n)).
+As a consequence,
 
-If omitted, assume (= v 1)."))
+;  ∀ v ∈ B. (= i (rank B (select B i v) v))
+
+Assume the following.
+
+; (= -1 (select B 0 v)) and
+; (= (1+ n) (select v B j)) if (> k (rank v B n)).
+
+If omitted, assume (= v 1).
+
+ACCESS inverts SELECT in its final argument, v:
+
+;  ∀ V ∈ B. (= v (access B (select B i v)))
+"))
 
 
 ;;; pred, succ; sum, search, read
