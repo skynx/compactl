@@ -25,7 +25,11 @@ book, Compact Data Structures."
 		      :depends-on ("protocol"
 				   "compression"
 				   "arrays")
-		      :components ((:file "bitvector")))
+		      :components ((:file "naive")
+				   #+ignore
+				   (:file "fast")
+				   #+ignore
+				   (:file "compressed")))
 	     #+ignore
 	     (:module "parentheses"
 		      :depends-on ("compression"
