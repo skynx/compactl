@@ -30,6 +30,19 @@
 	    )))
 
 
+(setf dwt0 (list (make-array 2 :element-type 'bit :fill-pointer 0 :adjustable t) nil nil))
+
+(time
+ (let ((X0 (make-random-state)))
+   (loop repeat 100000 do (%%update-online-wavelet-tree dwt0 (random 50)))))
+
+(time
+ (%wt-select 12 dwt0 3000))
+
+(time
+ (%wt-access 0 0 dwt0 (%wt-select 5 dwt0 100)))
+
+
 #|
 THIS IS NOT A REAL PROPERTY CHECKING STATEMENT.
 IT IS A FANTASY.
