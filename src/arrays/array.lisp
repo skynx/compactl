@@ -212,19 +212,7 @@ Output:  Sets B[j] ← 0.
       (adjust-array W (1+ j1--)))
     (cond ((> j0 j1) (values))
 	  ((= j0-- j1--)   ;; endpoints in same block of W
-	   (setf (ldb (byte (- j1 j0) (mod j0 +w+)) (aref W j1--)) x)
-	   #+ignore
-	   (let ((r (1+ (mod j1 +w+))))
-	     ;; first clear the range
-	     (setf (aref W j1--)
-		   (- (aref W j1--)
-		      (* (mod (floor (/ (aref W j1--)
-					(expt 2 (- +w+ r))))
-			      (expt 2 (1+ (- j1 j1))))
-			 (expt 2 (- +w+ r)))))
-	     ;; then set cleared area to x
-	     (setf (aref W j1--) (+ (aref W j1--)
-				    (* x (expt 2 (- +w+ r)))))))
+	   (setf (ldb (byte (- j1 j0) (mod j0 +w+)) (aref W j1--)) x))
 	  (t ;; endpoints in adjacent blocks
 	   (let ((r (mod j0 +w+)))
 	     (setf
@@ -233,28 +221,13 @@ Output:  Sets B[j] ← 0.
 	      (ldb (byte (- +w+ r) 0) x)
 	      ;; upper block
 	      (ldb (byte (mod j1 +w+) 0) (aref W j1--))
-	      (ldb (byte (mod j1 +w+) (- +w+ r)) x)))
-	   #+ignore
-	   (let ((r (1+ (mod (1- j0) +w+))))
-	     ;; place upper end of x in later block
-	     (setf (aref W j1--)
-		   (+ (mod (aref W j1--)
-			   (expt 2 (- +w+ r)))
-		      (* (mod x (expt 2 r))
-			 (expt 2 (- +w+ r)))))
-	     ;; place lower end of x in earlier block
-	     (setf (aref W j0--)
-		   (+ (- (aref W j0--)
-			 (mod (aref W j0--)
-			      (expt 2 (- +w+ r))))
-		      (floor (/ x
-				(expt 2 r))))))))
+	      (ldb (byte (mod j1 +w+) (- +w+ r)) x)))))
     (values)))
 
 (defmethod writec ((A arrayc-fixed-element-size) (i integer) x)
   (let ((W (slot-value A 'virtual-bit-array))
 	(len (element-size A)))
-    (bitswrite W (* len i) (* len (1+ i)) x)))
+    (bitswrite W (* len i) (1- (* len (1+ i))) x)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Using fractions of bits
