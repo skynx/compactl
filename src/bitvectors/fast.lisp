@@ -57,7 +57,19 @@
     ;; set slot rank-samples to the array of sampled rank values
     (setf (slot-value current 'rank-samples) R)))
 
+(defmethod rank ((B bitvector-sampled-rank-sparse) (i integer) &optional (v bit))
+  ;; see p. 74 of Navarro
+  )
 
+
+#|
+
+For a previously define bitvector-naive, you can get the fast-rank
+overhead bits in one step:
+
+(change-class * 'bitvector-sampled-rank-dense :rstep 10)
+
+|#
 
 (defmethod update-instance-for-different-class :after
     ((previous bitvector-naive)
@@ -73,16 +85,12 @@
     (loop for i upfrom 0 as x across W
        sum (logcount x) into rprime-sum
        do (writec R-prime i rprime-sum)
-       when (and (> i 0) (zerop (mod i s))) sum (- rprime-sum) into rprime-sum
-	 
-	 #+ignore
-	 (loop
-	     for j
-	     from (1+ (* s (floor (/ i s))))
-	     to (*  +w+ (floor (/ i +w+)))
-	     sum (logcount x) into r-prime-sum
-	     do (writec R-prime j r-prime-sum)))
+       when (and (> i 0) (zerop (mod i s))) sum (- rprime-sum) into rprime-sum)
     (setf (slot-value current 'rank-samples-relative) R-prime)))
+
+(defmethod rank ((B bitvector-sampled-rank-dense) (i integer) &optional (v bit))
+  ;; see p. 75 of Navarro
+  )
 
 ;;; faster SELECT
 
