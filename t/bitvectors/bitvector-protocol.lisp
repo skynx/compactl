@@ -5,10 +5,10 @@
 
 
 
-(let ((len 20000)
-      (X1 (make-random-state))
-      (X2 (make-random-state)))
-  (setf bv0 (make-instance 'bitvector-naive :length len))
+(let* ((len 20000)
+       (X1 (make-random-state))
+       (X2 (make-random-state))
+       (bv0 (make-instance 'bitvector-naive :length len)))
 
   (loop repeat 500000 do
        (if (= (random 2) 1)
