@@ -7,6 +7,7 @@ book, Compact Data Structures."
   :author "Sky Hester"
   :license  "none specified"
   :version "0.0.1"
+  :depends-on ("priority-queue")
   :components
   ((:module "base"
 	    :pathname #.(make-pathname :directory '(:relative))
@@ -16,7 +17,8 @@ book, Compact Data Structures."
 	    :components
 	    ((:file "protocol")
 	     (:module "compression"
-		      :components ((:file "coding")))
+		      :components ((:file "coding")
+				   (:file "huffman")))
 	     (:module "arrays"
 		      :depends-on ("protocol"
 				   "compression")
