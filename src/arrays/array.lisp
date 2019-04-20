@@ -8,6 +8,22 @@
   ((arrayc-length :initarg :length
 		  :reader lengthc)))
 
+
+(defmethod access :before ((B arrayc) (i integer))
+  (when (not (<= 0 i (lengthc B)))
+    (error 'protocol-range-error
+	   :operation #'access :object B
+	   :index i :upper (lengthc B))))
+
+
+(defmethod rank :before ((B arrayc) (i integer) &optional v)
+  (declare (ignore v))
+  (when (not (<= 0 i (lengthc B)))
+    (error 'protocol-range-error
+	   :operation #'rank :object B
+	   :index i :upper (lengthc B))))
+
+
 ;;; ADT arrayc supports these operations:
 
 (defgeneric readc (A i)
