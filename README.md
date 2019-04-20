@@ -44,9 +44,10 @@ To disable debug printing, issue the following form at the REPL,
 
 Wavelet trees (WT), as described by Gonzalo Navarro, are a compact
 data structure over sequences having length n, of symbols from an
-alphabet Σ with σ ∈ Z symbols, supporting three query operations in
-O(log σ) time and space \(n log σ + o(n log σ) + O(σw) \) bits, where
-w is the length in bits of the machine word.
+alphabet Σ with σ symbols, where σ is a positive integer, supporting
+three standard query operations in O(log σ) time and space \(n log σ +
+o(n log σ) + O(σw) \) bits, where w is the length in bits of the
+machine word.
 
 ## License
 
