@@ -1,9 +1,14 @@
 ;;;; compactl.asd
 
 (asdf:defsystem :compactl
-  :description " COMPACTL.
+  :description "
+
+COMPACTL.
+
  Lisp-native compact data structures.  Based on Gonzalo Navarro's
-book, Compact Data Structures."
+ book, Compact Data Structures (Cambridge Univ. Press, 2016).
+
+"
   :author "Sky Hester"
   :license  "none specified"
   :version "0.0.1"
@@ -12,6 +17,8 @@ book, Compact Data Structures."
   ((:module "base"
 	    :pathname #.(make-pathname :directory '(:relative))
 	    :components ((:file "package")))
+   ;; This system's organization was initially based on Figure 1.1,
+   ;; p. 5 of Navarro (2016).
    (:module "src"
 	    :depends-on ("base")
 	    :components
