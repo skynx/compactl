@@ -25,8 +25,8 @@
 	  :reader range-error-upper-bound))
   (:report (lambda (condition stream)
 	     (format stream
-		     "Index i = ~a is out of bounds 0 ≤ i ≤ ~a for object ~a;~%
-Could not perform operation ~a"
+		     "Index i = ~a is out of bounds 0 ≤ i ≤ ~a for object ~a;~%~
+                     Could not perform operation ~a"
 		     (range-error-index condition)
 		     (range-error-upper-bound condition)
 		     (object-for condition)
@@ -49,14 +49,14 @@ Could not perform operation ~a"
   (:documentation
    "
     Returns the number of occurences of bit v ∈ {0,1} in bitvector
-    B[0,n] from position 0 to position i in, for any 0 ≤ i ≤ n; in
+    B[0,n] from position 0 to position i, for any i, 0 ≤ i ≤ n; in
     particular,
 
     ; (= 0 (rank v B -1)).
 
     If omitted, assume (= v 1).
 
-    RANK inverts SELECT in its second argument, i:
+    RANK inverts SELECT in its second argument, i; that is to say,
 
     ;  ∀ v ∈ B. (= i (rank B (select B i v) v))
 "))
@@ -80,7 +80,7 @@ Could not perform operation ~a"
 
     If omitted, assume (= v 1).
 
-    ACCESS inverts SELECT in its final argument, v:
+    ACCESS inverts SELECT in its final argument, v; that is to say,
 
     ;  ∀ V ∈ B. (= v (access B (select B i v)))
 "))
