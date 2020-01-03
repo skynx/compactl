@@ -70,3 +70,22 @@ COMPACTL.
 		      :depends-on ("compression"
 				   "trees"
 				   "sequences"))))))
+
+(asdf:defsystem :compactl.ex
+    :description "
+
+COMPACTL EXAMPLES.
+
+ Example usage of Lisp-native compact data structures defined by
+ system COMPACTL.
+
+"
+  :author "Sky Hester"
+  :license  "none specified"
+  :version "0.0.1"
+  :depends-on ("compactl" "marshal")
+  :pathname "examples"
+  :components
+  ((:module "sequences"
+	    :components
+	    ((:file "ex-wavelet-tree")))))
