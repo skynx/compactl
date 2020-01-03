@@ -1,0 +1,90 @@
+#+startup: latexpreview
+#+options: tex:t
+
+#+latex_header: \usepackage{forest}
+#+latex_header: \bracketset{opening bracket=(, closing bracket=)}
+
+* A test run of the algorithm
+
+Let's see what kind of output is produced by the consecutive merging
+procedure for a simple example sequence, taken from a fun part of a
+good (and hopefully well-known) book.  First we'll obtain a
+frequentist estimate of the symbol probabilities, then make the Huffman
+tree corresponding to that distribution.  Next we'll represent the
+CLOS tree as an s-expression, and finally render it with the \LaTeX
+package "~forest~" (https://ctan.org/pkg/forest?lang=en).
+
+#+name: inner-weights
+#+BEGIN_SRC lisp :session :var message="constantionplefishingnastypink"
+  (in-package :compactl.huffman)
+
+  (let ((mu message))
+    (ht->sexp (construct-huffman-tree
+	       (remove-duplicates (coerce mu 'list))
+	       (frequentist-estimator mu))
+	      1))
+#+END_SRC
+
+#+BEGIN_SRC lisp :var tree=inner-weights :results output raw
+  (format t "\\begin{forest}~%
+  ~w~%
+  \\end{forest}"
+          tree)
+#+END_SRC
+
+#+RESULTS:
+\begin{forest}
+
+"(30 (13 (#\\n) (7 (#\\t) (4 (#\\p) (#\\a)))) (17 (8 (4 (2 (#\\l) (#\\h)) (2 (#\\y) (#\\k))) (4 (2 (#\\e) (#\\g)) (2 (#\\c) (#\\f)))) (9 (#\\i) (5 (#\\o) (#\\s)))))"
+
+\end{forest}
+
+
+
+
+
+** Effect of merge order on tree shape
+
+In the primary loop of ~#'construct-huffman-tree~, consecutive
+~%ht-merge~ steps are performed.  The choice between left and right
+subtree orderings for the items popped from the priority queue affects
+the tree shape.
+
+#+BEGIN_SRC lisp
+					  ;... inside construct-huffman-tree
+
+  (loop until (= (pqueue-length pq) 1)
+     ;; only one thing is pushed, but two things are popped, so we
+     ;; are assured this will eventually stop (at each step the
+     ;; total queue length decreases by 1)
+     do (let* ((t1 (pqueue-pop pq))
+	       (t2 (pqueue-pop pq))
+	       ;; make the tree lean to the right
+	       (nu (%ht-merge ht :left t1 :right t2)))
+	  (pqueue-push nu (ht-weight nu) pq)))
+
+					  ;...
+
+#+END_SRC
+
+If you put t1 on the right instead of the left, you get a left-leaning
+tree.
+
+#+RESULTS:
+\begin{forest}
+
+"(#<HUFFMAN-TREE-NODE #x30200146F3FD> (#<HUFFMAN-TREE-NODE #x30200146F46D> (#<HUFFMAN-TREE-NODE #x30200146F4FD> (#<HUFFMAN-TREE-NODE #x30200146F58D> (#\\c) (#\\d)) (#\\r)) (#\\b)) (#\\a))"
+
+\end{forest}
+
+
+
+
+
+With t1 on the left, the tree leans to the right.
+
+\begin{forest}
+
+"(#<HUFFMAN-TREE-NODE #x3020014CF3FD> (#\\a) (#<HUFFMAN-TREE-NODE #x3020014CF46D> (#\\b) (#<HUFFMAN-TREE-NODE #x3020014CF4FD> (#\\r) (#<HUFFMAN-TREE-NODE #x3020014CF58D> (#\\d) (#\\c)))))"
+
+\end{forest}
